@@ -1,0 +1,367 @@
+---
+title: "Untitled"
+output: html_document
+date: "2022-11-21"
+---
+
+This dataset contains information about Sales Values in Dollars on American Stores between 2010 and 2011. In particular, this dataset contains:
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "C:/nexus/sklldev/kaggle/dashboards/store_sales")
+
+```
+
+
+```{r}
+
+library(dplyr)
+library(readr)
+library(lubridate)
+library(ggplot2)
+library(highcharter)
+library(tidyr)
+
+
+```
+
+
+```{r}
+
+sales <- read_csv('data/sales.csv') %>% 
+  janitor::clean_names()
+
+```
+
+```{r}
+
+sales
+
+
+```
+
+
+```{r}
+
+sales %>% 
+  group_by(state, product_type, type) %>% 
+  summarise(count = n())
+
+
+```
+
+
+
+```{r}
+
+sales %>% 
+  group_by(market, market_size) %>% 
+  summarise(count = n())
+
+```
+
+
+
+```{r}
+
+sales <- sales %>% 
+  mutate(date = mdy_hms(date))
+
+```
+
+
+```{r}
+
+sales_prod_mrkt <- sales %>% 
+  group_by(product_type, market_size, date) %>% 
+  summarise(profit = sum(profit)) %>% 
+  ungroup()
+
+sales_prod_mrkt
+
+```
+
+
+```{r}
+
+sales_prod_mrkt %>% 
+  ggplot(aes(date, profit, color = product_type)) +
+  geom_line() +
+  facet_wrap(~market_size, ncol = 1, scales = 'free_y')
+
+
+```
+
+
+
+```{r}
+
+
+unique(sort(sales_prod_mrkt$market_size))
+
+sales_prod_major_mrkt <- sales_prod_mrkt %>% 
+  filter(market_size == 'Major Market') %>% 
+  mutate(date = as.Date(date))
+
+sales_prod_small_mrkt <- sales_prod_mrkt %>% 
+  filter(market_size == 'Small Market') %>% 
+  mutate(date = as.Date(date))
+
+
+sales_prod_major_mrkt
+sales_prod_small_mrkt
+
+```
+
+
+
+
+```{r}
+
+
+hchart(
+  sales_prod_major_mrkt,
+  'line', 
+  hcaes(x = date, 
+        y = profit,
+        group = product_type
+  )) %>% 
+  hc_title(
+    text = "<b>Profit - Major Market Product Types</b>",
+    margin = 20,
+    align = "left",
+    style = list(color = "#737574", useHTML = TRUE)) %>% 
+  hc_xAxis(title = NULL)  %>% 
+  hc_yAxis(title = list(text = "Profit ($)"))
+
+```
+
+
+
+
+```{r}
+
+
+hchart(
+  sales_prod_small_mrkt,
+  'line', 
+  hcaes(x = date, 
+        y = profit,
+        group = product_type
+  )) %>% 
+  hc_title(
+    text = "<b>Profit - Small Market Product Types</b>",
+    margin = 20,
+    align = "left",
+    style = list(color = "#737574", useHTML = TRUE)) %>% 
+  hc_xAxis(title = NULL)  %>% 
+  hc_yAxis(title = list(text = "Profit ($)"))
+
+
+```
+
+
+
+```{r}
+
+sales
+
+
+```
+
+
+market profit
+
+
+```{r}
+
+market_profit <- sales %>% 
+  group_by(market_size, date) %>% 
+  summarise(total_profit = sum(profit)) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = market_size, values_from = total_profit) %>% 
+  janitor::clean_names() %>% 
+  mutate(date = as.Date(date))
+
+market_profit
+
+```
+
+
+
+
+
+
+```{r}
+
+market_profit_2 <- sales %>% 
+  group_by(market_size, date) %>% 
+  summarise(total_profit = sum(profit)) %>% 
+  ungroup() %>% 
+  mutate(date = as.Date(date))
+
+market_profit_2
+
+```
+
+
+```{r}
+
+hchart(
+  market_profit_2, 
+  "column",
+  hcaes(x = date, y = total_profit, group = market_size),
+  color = c("#7CB5EC", "#F7A35C"),
+  name = c("Major Market", "Small Market")
+) %>% 
+  hc_xAxis(title = NULL)  %>% 
+  hc_yAxis(title = list(text = "Profit ($)")) %>% 
+  hc_title(
+    text = "<b>Monthly Profit by Market Size</b>",
+    margin = 20,
+    align = "left",
+    style = list(color = "#737574", useHTML = TRUE)
+    ) 
+
+  
+```
+
+```{r}
+
+
+sales
+
+```
+
+
+```{r}
+
+sales %>% 
+  mutate(date = as.Date(date)) %>% 
+  select(date, sales) %>% 
+  mutate(mnth = month.abb[lubridate::month(date)]) %>% 
+  mutate(year = lubridate::year(date)) %>% 
+  select(mnth, year, sales) %>% 
+  pivot_wider(names_from = mnth, values_from = sales)
+
+
+
+```
+
+
+```{r}
+
+monthy_sales <- sales %>% 
+  mutate(date = as.Date(date)) %>% 
+  group_by(date) %>% 
+  summarise(sales = sum(sales)) %>% 
+  ungroup() %>% 
+  mutate(mnth = month.abb[lubridate::month(date)]) %>% 
+  mutate(year = lubridate::year(date)) %>% 
+  select(mnth, year, sales) %>% 
+  pivot_wider(names_from = mnth, values_from = sales)
+
+monthy_sales
+
+```
+
+
+```{r}
+
+monthy_sales_slim <- monthy_sales %>% 
+  select(-year)
+
+monthy_sales_slim
+
+```
+
+
+
+
+```{r}
+
+library(reactable)
+
+month.abb
+
+
+dimnames <- list(c(2010, 2011), month.abb)
+
+dimnames
+
+```
+
+
+```{r}
+
+monthy_sales_mtrx <- matrix(unlist(monthy_sales_slim)
+                            , nrow = 2
+                            , dimnames = dimnames
+                            )
+
+monthy_sales_mtrx
+
+```
+
+
+```{r}
+
+str(nottem)
+
+min(monthy_sales_mtrx)
+
+```
+
+
+
+```{r}
+
+
+BuYlRd <- function(x) rgb(colorRamp(c("#7fb7d7", "#ffffbf", "#fc8d59"))(x), maxColorValue = 255)
+
+
+reactable(
+  monthy_sales_mtrx,
+  defaultColDef = colDef(
+    align = "center",
+    style = function(value) {
+      if (!is.numeric(value)) return()
+      normalized <- (value - min(monthy_sales_mtrx)) / (max(monthy_sales_mtrx) - min(monthy_sales_mtrx))
+      color <- BuYlRd(normalized)
+      list(background = color)
+    },
+    format = colFormat(digits = 0),
+    minWidth = 50
+  ),
+  columns = list(
+    .rownames = colDef(name = "Year", sortable = TRUE, align = "left")
+  ),
+  bordered = TRUE
+)
+
+
+
+```
+
+
+
+
+```{r}
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
