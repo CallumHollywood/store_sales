@@ -80,14 +80,20 @@ ui <- function(id) {
 }
 
 #' @export
-server <- function(id) {
+server <- function(
+    id,
+    sales
+    ) {
   moduleServer(id, function(input, output, session) {
     
     
     #### <<<<    CALLMODULES     >>>>  ####
     #-------------------------------------#
     
-    market_analysis$server('mrktanlyss')
+    market_analysis$server('mrktanlyss',
+                           sales
+                           )
+    
     product_analysis$server('prdanlyss')
     
     

@@ -349,11 +349,20 @@ reactable(
 
 ```{r}
 
+market_sales <- sales %>% 
+  mutate(year = lubridate::year(date)) %>% 
+  group_by(year, market_size) %>% 
+  summarise(sales = sum(sales))
 
-
+market_sales
 
 ```
 
+```{r}
+
+market_sales %>% filter(year == 2010, market_size == 'Major Market') %>% pull(sales)
+
+```
 
 
 

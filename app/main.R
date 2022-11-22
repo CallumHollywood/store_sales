@@ -2,6 +2,11 @@ box::use(
   shiny[bootstrapPage, moduleServer, NS, renderText, tags, textOutput,
         tagList
         ],
+  readr[read_csv],
+  janitor[clean_names],
+  magrittr[`%>%`],
+  dplyr[mutate],
+  lubridate[mdy_hms]
 )
 
 box::use(
@@ -27,10 +32,17 @@ server <- function(id) {
     #### <<<<    CALLMODULES     >>>>  ####
     #-------------------------------------#
     
-    layout$server('layout')
+    layout$server('layout',
+                  sales
+                  )
     
     #### <<<<    STATIC VALUES   >>>>  ####
     #-------------------------------------#
+    
+    sales <- read_csv('data/sales.csv') %>% 
+      clean_names() %>% 
+      mutate(date = mdy_hms(date))%>% 
+      mutate(date = as.Date(date))
     
     
     #### <<<<   REACTIVES        >>>>  ####
