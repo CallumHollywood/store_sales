@@ -318,6 +318,8 @@ min(monthy_sales_mtrx)
 ```{r}
 
 
+library(reactable)
+
 BuYlRd <- function(x) rgb(colorRamp(c("#7fb7d7", "#ffffbf", "#fc8d59"))(x), maxColorValue = 255)
 
 
