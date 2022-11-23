@@ -1,0 +1,405 @@
+---
+title: "Untitled"
+output: html_document
+date: "2022-11-21"
+---
+
+This dataset contains information about Sales Values in Dollars on American Stores between 2010 and 2011. In particular, this dataset contains:
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "C:/nexus/sklldev/kaggle/dashboards/store_sales")
+
+```
+
+
+```{r}
+
+library(dplyr)
+library(readr)
+library(lubridate)
+library(ggplot2)
+library(highcharter)
+library(tidyr)
+library(rmarkdown)
+
+```
+
+
+```{r}
+
+sales <- read_csv('data/sales.csv') %>% 
+  janitor::clean_names()
+
+```
+
+```{r}
+
+sales
+
+length(unique(sales$product))
+
+```
+
+average budget profit by product_type, product, type
+
+```{r}
+
+
+grouped_sales <- sales %>% 
+  group_by(product_type, product, type) %>% 
+  summarise(avg_budget_profit = round(mean(budget_margin), 0)) %>% 
+  ungroup() %>% 
+  arrange(product_type, desc(avg_budget_profit))
+
+
+grouped_sales <- grouped_sales %>% 
+  rename(
+    `Product Type` = product_type,
+    Product = product ,
+    Type = type,
+    `Average Budget Profit` = avg_budget_profit
+  )
+
+grouped_sales
+
+```
+
+
+```{r}
+
+
+# reactable(
+#   grouped_sales,
+#   groupBy = 'product_type'
+# )
+
+library(reactable)
+
+reactable(
+  grouped_sales,
+  groupBy = "Product Type",
+  searchable = TRUE,
+  columns = list(
+    `Average Budget Profit` = colDef(
+      aggregate = "sum",
+      format = colFormat(currency = "USD")
+    )
+  )
+)
+
+
+```
+
+
+total expenses y product(product_type)
+
+```{r}
+
+
+product_expenses <- sales %>% 
+  mutate(product = paste(product_type, product)) %>% 
+  select(product, product_type, total_expenses) %>% 
+  group_by(product) %>% 
+  mutate(total_expenses = sum(total_expenses)) %>% 
+  ungroup() %>% 
+  distinct() %>% 
+  arrange(desc(total_expenses))
+
+```
+
+
+
+```{r}
+
+# library(forcats)
+
+product_expenses %>% 
+  # mutate(product = fact) %>% 
+  ggplot(aes(product, total_expenses)) +
+  geom_col() +
+  coord_flip()
+
+
+
+
+
+```
+
+```{r}
+
+product_expenses2 <- sales %>% 
+  mutate(product = paste(product_type, product)) %>% 
+  select(market_size, product, product_type, total_expenses) %>% 
+  group_by(market_size, product) %>% 
+  mutate(total_expenses = sum(total_expenses)) %>% 
+  ungroup() %>% 
+  distinct() %>% 
+  arrange(desc(total_expenses))
+
+product_expenses2
+
+```
+
+
+
+```{r}
+
+hchart(
+  product_expenses2, 
+  "bar",
+  hcaes(x = product,
+        y = total_expenses
+        , group = market_size
+        ),
+  color = c("#7CB5EC", "#F7A35C"),
+  name = c("Major Market", "Small Market")
+  )
+
+
+```
+
+
+
+
+```{r}
+
+
+product_metrics <- sales %>% 
+  mutate(product = paste(product_type, product)) %>% 
+  select(product, product_type, total_expenses, profit, sales) %>% 
+  group_by(product) %>% 
+  mutate(
+    total_expenses = sum(total_expenses),
+    profit = sum(profit),
+    sales = sum(sales)
+  ) %>% 
+  ungroup() %>% 
+  distinct() %>% 
+  arrange(desc(total_expenses))
+
+
+# product_metrics <- product_metrics %>% 
+#   select(-profit, - sales)
+
+
+product_metrics
+
+```
+
+```{r}
+
+
+
+
+bar_chart <- function(label, width = "100%", height = "1rem", fill = "#00bfc4", background = NULL) {
+  
+  bar <- tags$div(style = list(background = fill, width = width, height = height))
+  
+  if(nchar(as.character(label)) == 4){
+    
+    marginleft <- "1.5rem"
+    
+  } else if(nchar(as.character(label)) == 5){
+    
+    marginleft <- "1rem"
+    
+  }  
+  
+  chart <- tags$div(style = list(flexGrow = 1, marginLeft = marginleft, background = background), bar)
+  tags$div(style = list(display = "flex", alignItems = "center"), label, chart)
+}
+
+
+
+bar_chart2 <- function(label, width = "100%", height = "1rem", fill = "#00bfc4", background = NULL) {
+  
+  bar <- tags$div(style = list(background = fill, width = width, height = height))
+  
+  if(nchar(as.character(label)) == 5){
+    
+    marginleft <- "1.5rem"
+    
+  } else if(nchar(as.character(label)) == 6){
+    
+    marginleft <- "1rem"
+    
+  }  
+  
+  chart <- tags$div(style = list(flexGrow = 1, marginLeft = marginleft, background = background), bar)
+  tags$div(style = list(display = "flex", alignItems = "center"), label, chart)
+}
+
+
+
+
+```
+
+```{r}
+
+product_metrics %>% 
+  select(-product_type) %>% 
+  reactable(
+    showSortable = TRUE,
+    columns = list(
+      total_expenses = colDef(name = "total_expenses", align = "left", cell = function(value) {
+        width <- paste0(value / max(product_metrics$total_expenses) * 100, "%")
+        bar_chart(value, width = width, background = "#e1e1e1", fill = "#e6b122")
+      }
+      ),
+      profit = colDef(name = "profit", align = "left", cell = function(value) {
+        width <- paste0(value / max(product_metrics$total_expenses) * 100, "%")
+        bar_chart(value, width = width, background = "#e1e1e1", fill = "#ab47bf")
+      }
+      ),
+      sales = colDef(name = "sales", align = "left", cell = function(value) {
+        width <- paste0(value / max(product_metrics$total_expenses) * 100, "%")
+        bar_chart2(value, width = width, background = "#e1e1e1")
+      }
+      )
+    )
+  )
+
+
+```
+
+
+
+
+```{r}
+
+sales
+
+
+
+```
+
+
+marketing per product, per state
+
+```{r}
+
+
+state_prd_mrkt <- sales %>% 
+  select(state, product_type, product, marketing) %>% 
+  group_by(state
+           # , product_type
+           # , product
+           ) %>% 
+  summarise(marketing = sum(marketing)) %>% 
+  ungroup()
+
+
+
+state_prd_mrkt
+
+```
+
+
+```{r}
+
+hcmap("countries/us/us-all", showInLegend = FALSE)
+
+
+
+```
+
+```{r}
+
+state_prd_mrkt %>% 
+  filter(state == 'California')
+
+
+state_prd_mrkt %>% 
+  filter(state == 'Oregon')
+
+state_prd_mrkt %>% 
+  filter(state == 'Nevada')
+
+state_prd_mrkt %>% 
+  filter(marketing == 1320)
+
+state_prd_mrkt %>% 
+  filter(marketing == 1732)
+
+
+```
+
+```{r}
+
+state_prd_mrkt %>% arrange(desc(marketing))
+
+```
+
+
+```{r}
+
+plotting_data <- get_data_from_map(download_map_data("countries/us/us-all")) %>% 
+  select(name)
+
+plotting_data <- plotting_data %>% 
+  left_join(state_prd_mrkt %>% rename(name = state)) %>% 
+  mutate(marketing = ifelse(is.na(marketing), 0, marketing))
+
+```
+
+
+```{r}
+
+hcmap(
+  "countries/us/us-all",
+  showInLegend = FALSE,
+  data = plotting_data,
+  value = 'marketing',
+  tooltip = list(
+    valueDecimals = 2,
+    valuePrefix = "$",
+    valueSuffix = "USD"
+  ),
+  name = 'Marketing',
+  dataLabels = list(enabled = TRUE, format = "{point.name}")
+  )
+
+
+
+```
+
+
+```{r}
+
+
+state_prd_profit <- sales %>% 
+  select(state, product_type, product, profit) %>% 
+  group_by(state) %>% 
+  summarise(profit = sum(profit)) %>% 
+  ungroup()
+
+plotting_data <- get_data_from_map(download_map_data("countries/us/us-all")) %>% 
+  select(name)
+
+plotting_data <- plotting_data %>% 
+  left_join(state_prd_profit %>% rename(name = state)) %>% 
+  mutate(profit = ifelse(is.na(profit), 0, profit))
+
+```
+
+```{r}
+
+hcmap(
+  "countries/us/us-all",
+  showInLegend = FALSE,
+  data = plotting_data,
+  value = 'profit',
+  tooltip = list(
+    valueDecimals = 2,
+    valuePrefix = "$",
+    valueSuffix = "USD"
+  ),
+  name = 'profit',
+  dataLabels = list(enabled = TRUE, format = "{point.name}")
+  )
+
+
+```
+

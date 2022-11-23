@@ -94,7 +94,9 @@ server <- function(
                            sales
                            )
     
-    product_analysis$server('prdanlyss')
+    product_analysis$server('prdanlyss',
+                            sales
+                            )
     
     
     

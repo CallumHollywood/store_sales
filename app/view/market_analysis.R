@@ -22,9 +22,6 @@ box::use(
 ui <- function(id) {
   ns <- NS(id)
   tagList(
-    # tags$head(
-    #   tags$link(rel = "stylesheet", type = "text/css", href = "app/styles/styles.css")
-    # ),
     includeCSS('app/styles/styles.css'),
     fluidRow(
       column(12,
