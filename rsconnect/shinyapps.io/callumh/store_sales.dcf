@@ -1,0 +1,13 @@
+name: store_sales
+title: store_sales
+username:
+account: callumh
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 7712677
+bundleId: 6545909
+url: https://callumh.shinyapps.io/store_sales/
+when: 1669188272.32968
+lastSyncTime: 1669188272.32969
+asMultiple: FALSE
+asStatic: FALSE
